@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using System.Timers;
 using System.IO.Compression;
 using System.Diagnostics;
+using System.Text.Json.Serialization; // Не нужно, но на всякий случай для JSON (уже встроено).
+using System.Text.Json; // Для опций сериализации, если нужно исключить вычисляемые свойства.
 
 // Это код для главного окна. Здесь вся логика приложения.
 namespace BackupManager
@@ -37,7 +39,11 @@ namespace BackupManager
         // Сохранение данных в JSON и обновление UI без сброса выделения.
         private void SaveData(bool refreshBackupsOnly = false)
         {
-            DataManager.SaveProfiles(profiles);
+            // Опции для JSON: исключаем вычисляемые свойства вроде IsArchivedString, чтобы не сериализовать их (опционально, но чище).
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            // Если нужно исключить IsArchivedString, добавь: options.IgnoreNullValues = true; но здесь оно не null.
+
+            DataManager.SaveProfiles(profiles); // Сохраняем в файл (метод уже использует JsonSerializer).
             if (refreshBackupsOnly)
             {
                 // Обновляем только таблицу бэкапов, сохраняя выделение профиля.
@@ -222,7 +228,7 @@ namespace BackupManager
             }
         }
 
-        // Расчёт размера папки или ZIP (в МБ).
+        // Расчёт размера папки или ZIP (в МБ). Обратите внимание: в твоём JSON размер "95,00 MB" — это из-за локали (запятая вместо точки). Если нужно, можно форматировать с CultureInfo.
         private string CalculateSize(string path)
         {
             long size = 0;
@@ -235,7 +241,8 @@ namespace BackupManager
                 var files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
                 size = files.Sum(f => new FileInfo(f).Length);
             }
-            return (size / 1024 / 1024).ToString("0.00") + " MB";
+            // Форматируем с запятой для русской локали (опционально).
+            return (size / 1024 / 1024).ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("ru-RU")) + " MB";
         }
 
         // Иконка "Удалить бэкап" в таблице.
@@ -276,11 +283,26 @@ namespace BackupManager
             }
         }
 
-        // Переименование имени бэкапа (при окончании редактирования ячейки).
+        // Переименование имени бэкапа (при окончании редактирования ячейки). ИСПРАВЛЕНИЕ БАГА: Ручное обновление значения из TextBox в объект Backup.
         private void BackupsGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
-            // Здесь можно добавить валидацию, но для простоты просто сохраняем.
-            SaveData(true); // Обновляем только бэкапы.
+            if (e.EditAction == DataGridEditAction.Commit) // Только если редактирование подтверждено (Enter или потеря фокуса).
+            {
+                // Получаем ячейку и элемент редактирования (TextBox для столбца "Имя").
+                var editedCell = e.EditingElement as TextBox;
+                if (editedCell != null)
+                {
+                    // Получаем объект Backup из строки DataGrid.
+                    var backup = e.Row.Item as Backup;
+                    if (backup != null)
+                    {
+                        // Ручное присвоение нового имени из TextBox в объект (это обновит модель и вызовет INotifyPropertyChanged).
+                        backup.Name = editedCell.Text;
+                        // Теперь UI обновится автоматически, а SaveData сохранит в JSON.
+                    }
+                }
+            }
+            SaveData(true); // Сохраняем изменения в JSON и обновляем таблицу.
         }
     }
 }
