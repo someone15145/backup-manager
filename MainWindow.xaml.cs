@@ -304,5 +304,67 @@ namespace BackupManager
             }
             SaveData(true); // Сохраняем изменения в JSON и обновляем таблицу.
         }
+
+        // Новый метод: иконка "Восстановить" в таблице бэкапов. Выполняет полную замену оригинальной папки содержимым бэкапа.
+        private void RestoreBackupIcon_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            var backup = button.DataContext as Backup;
+            if (backup == null || selectedProfile == null) return;
+
+            // Проверяем существование оригинальной папки.
+            if (!Directory.Exists(selectedProfile.OriginalPath))
+            {
+                MessageBox.Show("Оригинальная папка не существует!");
+                return;
+            }
+
+            // Подтверждение от пользователя, чтобы избежать случайной потери данных.
+            var result = MessageBox.Show($"Восстановить из бэкапа '{backup.Name}'?\nЭто заменит все файлы в оригинальной папке '{selectedProfile.OriginalPath}'.", "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result != MessageBoxResult.Yes) return;
+
+            try
+            {
+                string tempExtractPath = null; // Временная папка для извлечения ZIP, если нужно.
+                string sourcePath = backup.Path; // Путь к бэкапу (папка или ZIP).
+
+                // Если бэкап — ZIP, извлекаем его во временную папку.
+                if (backup.IsArchived)
+                {
+                    tempExtractPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()); // Создаём уникальную временную папку.
+                    ZipFile.ExtractToDirectory(sourcePath, tempExtractPath); // Извлекаем ZIP.
+                    sourcePath = tempExtractPath; // Теперь копируем из временной папки.
+                }
+
+                // Очищаем оригинальную папку (удаляем всё внутри, но не саму папку).
+                var originalFiles = Directory.GetFiles(selectedProfile.OriginalPath);
+                var originalDirs = Directory.GetDirectories(selectedProfile.OriginalPath);
+                foreach (var file in originalFiles)
+                {
+                    File.Delete(file); // Удаляем файлы.
+                }
+                foreach (var dir in originalDirs)
+                {
+                    Directory.Delete(dir, true); // Рекурсивно удаляем подпапки.
+                }
+
+                // Копируем содержимое бэкапа в оригинальную папку.
+                CopyDirectory(sourcePath, selectedProfile.OriginalPath);
+
+                // Очищаем временную папку, если использовали ZIP.
+                if (backup.IsArchived && Directory.Exists(tempExtractPath))
+                {
+                    Directory.Delete(tempExtractPath, true); // Удаляем временные файлы.
+                }
+
+                MessageBox.Show($"Восстановление завершено из бэкапа '{backup.Name}'!");
+                selectedProfile.LastBackupTime = DateTime.Now; // Обновляем время последнего "бэкапа" (для авто-проверки изменений).
+                SaveData(true); // Обновляем таблицу бэкапов (на всякий случай).
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка восстановления: " + ex.Message + "\nПроверьте права доступа к папкам.");
+            }
+        }
     }
 }
