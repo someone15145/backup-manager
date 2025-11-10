@@ -256,7 +256,7 @@ namespace BackupManager
             if (File.Exists(selectedBackup.Path))
                 File.Delete(selectedBackup.Path);
             else if (Directory.Exists(selectedBackup.Path))
-                Directory.Delete(selectedProfile.BackupPath, true);
+                Directory.Delete(selectedBackup.Path, true);  // Исправление: Удаляем конкретный бэкап (selectedBackup.Path), а не всю папку профиля.
 
             selectedProfile.Backups.Remove(selectedBackup);
             SaveData(true); // Обновляем только бэкапы.
@@ -283,7 +283,7 @@ namespace BackupManager
             }
         }
 
-        // Переименование имени бэкапа (при окончании редактирования ячейки). ИСПРАВЛЕНИЕ БАГА: Ручное обновление значения из TextBox в объект Backup + переименование на диске.
+        // Переименование имени бэкапа (при окончании редактирования ячейки). ИСПРАВЛЕНИЕ БАГА: Ручное обновление значения из TextBox в объект Backup.
         private void BackupsGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
             if (e.EditAction == DataGridEditAction.Commit) // Только если редактирование подтверждено (Enter или потеря фокуса).
@@ -296,61 +296,13 @@ namespace BackupManager
                     var backup = e.Row.Item as Backup;
                     if (backup != null)
                     {
-                        string newName = editedCell.Text.Trim(); // Получаем новое имя и убираем пробелы.
-                        if (string.IsNullOrEmpty(newName)) // Проверка на пустое имя.
-                        {
-                            MessageBox.Show("Имя не может быть пустым!");
-                            return;
-                        }
-
-                        // Проверяем на дубликат имени в этом профиле (кроме текущего бэкапа).
-                        if (selectedProfile.Backups.Any(b => b != backup && b.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            MessageBox.Show("Имя уже существует для другого бэкапа!");
-                            return;
-                        }
-
-                        string oldPath = backup.Path; // Старый путь.
-                        string parentDir = Path.GetDirectoryName(oldPath); // Родительская папка (например, "D:\_Storage\GameSaves\_Backups\No Man's Sky").
-                        string newPath;
-
-                        if (backup.IsArchived) // Если архивировано — переименовываем ZIP-файл.
-                        {
-                            newPath = Path.Combine(parentDir, newName + ".zip");
-                        }
-                        else // Если папка — переименовываем папку.
-                        {
-                            newPath = Path.Combine(parentDir, newName);
-                        }
-
-                        try
-                        {
-                            if (backup.IsArchived)
-                            {
-                                if (File.Exists(oldPath)) // Проверяем существование.
-                                    File.Move(oldPath, newPath); // Переименовываем файл.
-                            }
-                            else
-                            {
-                                if (Directory.Exists(oldPath)) // Проверяем существование.
-                                    Directory.Move(oldPath, newPath); // Переименовываем папку (включая содержимое).
-                            }
-
-                            // Обновляем объект: имя и путь.
-                            backup.Name = newName;
-                            backup.Path = newPath;
-                            // Благодаря INotifyPropertyChanged в Backup.cs, таблица обновится автоматически.
-
-                            SaveData(true); // Сохраняем в JSON и обновляем таблицу.
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show("Ошибка переименования на диске: " + ex.Message + "\nИзменение отменено.");
-                            // Если ошибка, не сохраняем — имя остаётся старым.
-                        }
+                        // Ручное присвоение нового имени из TextBox в объект (это обновит модель и вызовет INotifyPropertyChanged).
+                        backup.Name = editedCell.Text;
+                        // Теперь UI обновится автоматически, а SaveData сохранит в JSON.
                     }
                 }
             }
+            SaveData(true); // Сохраняем изменения в JSON и обновляем таблицу.
         }
 
         // Новый метод: иконка "Восстановить" в таблице бэкапов. Выполняет полную замену оригинальной папки содержимым бэкапа.
