@@ -3,74 +3,87 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="BackupManager" Height="500" Width="1000">
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="2*"/>
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <!-- Основная часть: таблицы профилей и бэкапов. -->
+            <RowDefinition Height="100" />
+            <!-- Нижняя часть: область лога (высота 100 пикселей, можно изменить). -->
+        </Grid.RowDefinitions>
 
-        <!-- Левая часть: таблица профилей -->
-        <StackPanel Grid.Column="0" Margin="10">
-            <StackPanel Orientation="Horizontal">
-                <Button Content="Добавить профиль" Click="AddProfile_Click" Margin="5"/>
-            </StackPanel>
-            <DataGrid x:Name="ProfilesGrid" AutoGenerateColumns="False" SelectionChanged="ProfilesGrid_SelectionChanged" CanUserAddRows="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="*"/>
-                    <DataGridTemplateColumn Header="Оригинал" Width="60">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="📂" Click="OpenOriginalFolder_Click"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="Изменить" Width="60">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="✏️" Click="EditProfileIcon_Click"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="Удалить" Width="60">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="🗑️" Click="DeleteProfileIcon_Click"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-        </StackPanel>
+        <!-- Основная часть: левая и правая колонки. -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
 
-        <!-- Правая часть: таблица бэкапов для выбранного профиля -->
-        <StackPanel Grid.Column="1" Margin="10">
-            <StackPanel Orientation="Horizontal">
-                <Button x:Name="CreateBackupButton" Content="Создать бэкап" Click="CreateBackup_Click" Margin="5" IsEnabled="False"/>
-                <CheckBox x:Name="ArchiveCheckbox" Content="Архивировать в ZIP" Margin="5" VerticalAlignment="Center"/>
-                <Button Content="Открыть папку" Click="OpenBackupFolderButton_Click" Margin="5"/>
+            <!-- Левая часть: таблица профилей -->
+            <StackPanel Grid.Column="0" Margin="10">
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Добавить профиль" Click="AddProfile_Click" Margin="5"/>
+                </StackPanel>
+                <DataGrid x:Name="ProfilesGrid" AutoGenerateColumns="False" SelectionChanged="ProfilesGrid_SelectionChanged" CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="*"/>
+                        <DataGridTemplateColumn Header="Оригинал" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="📂" Click="OpenOriginalFolder_Click"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Изменить" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="✏️" Click="EditProfileIcon_Click"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Удалить" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="🗑️" Click="DeleteProfileIcon_Click"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
             </StackPanel>
-            <DataGrid x:Name="BackupsGrid" AutoGenerateColumns="False" CellEditEnding="BackupsGrid_CellEditEnding" CanUserAddRows="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="*" IsReadOnly="False"/>
-                    <DataGridTextColumn Header="Дата создания" Binding="{Binding CreationDate}" Width="150" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Размер" Binding="{Binding Size}" Width="100" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Архивирован" Binding="{Binding IsArchivedString}" Width="80" IsReadOnly="True"/>
-                    <DataGridTemplateColumn Header="Удалить" Width="60">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="🗑️" Click="DeleteBackupIcon_Click"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <!-- Новый столбец: иконка для восстановления бэкапа в оригинальную папку. -->
-                    <DataGridTemplateColumn Header="Восстановить" Width="80">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="🔄" Click="RestoreBackupIcon_Click"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-        </StackPanel>
+
+            <!-- Правая часть: таблица бэкапов для выбранного профиля -->
+            <StackPanel Grid.Column="1" Margin="10">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="CreateBackupButton" Content="Создать бэкап" Click="CreateBackup_Click" Margin="5" IsEnabled="False"/>
+                    <CheckBox x:Name="ArchiveCheckbox" Content="Архивировать в ZIP" Margin="5" VerticalAlignment="Center"/>
+                    <Button Content="Открыть папку" Click="OpenBackupFolderButton_Click" Margin="5"/>
+                </StackPanel>
+                <DataGrid x:Name="BackupsGrid" AutoGenerateColumns="False" CellEditEnding="BackupsGrid_CellEditEnding" CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="*" IsReadOnly="False"/>
+                        <DataGridTextColumn Header="Дата создания" Binding="{Binding CreationDate}" Width="150" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Размер" Binding="{Binding Size}" Width="100" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Архивирован" Binding="{Binding IsArchivedString}" Width="80" IsReadOnly="True"/>
+                        <DataGridTemplateColumn Header="Удалить" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="🗑️" Click="DeleteBackupIcon_Click"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <!-- Столбец для восстановления бэкапа. -->
+                        <DataGridTemplateColumn Header="Восстановить" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="🔄" Click="RestoreBackupIcon_Click"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Grid>
+
+        <!-- Нижняя часть: область лога (многострочный текстбокс, только для чтения, с прокруткой). -->
+        <TextBox x:Name="LogTextBox" Grid.Row="1" Margin="10" IsReadOnly="True" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" />
     </Grid>
 </Window>

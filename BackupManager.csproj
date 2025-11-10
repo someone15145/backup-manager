@@ -3,6 +3,7 @@
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net8.0-windows</TargetFramework>
 		<UseWPF>true</UseWPF>
-		<UseWindowsForms>true</UseWindowsForms>	<!-- Добавь эту строку! Она включает WinForms для использования FolderBrowserDialog. -->
+		<!-- Включает Windows Forms для FolderBrowserDialog (диалог выбора папки). Зачем: чтобы выбирать папки без внешних библиотек. -->
+		<UseWindowsForms>true</UseWindowsForms>
 	</PropertyGroup>
 </Project>

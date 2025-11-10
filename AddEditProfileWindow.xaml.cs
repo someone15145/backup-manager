@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows;
-using System.Windows.Forms; // Для FolderBrowserDialog.
+using System.Windows.Forms; // Для FolderBrowserDialog (диалог выбора папки).
 
-// Окно для добавления или изменения профиля.
+// Это окно для добавления или изменения профиля.
+// Оно возвращает объект Profile, если OK pressed.
 namespace BackupManager
 {
     public partial class AddEditProfileWindow : Window
@@ -26,19 +27,19 @@ namespace BackupManager
             }
         }
 
-        // Выбор оригинальной папки через проводник.
+        // Кнопка для выбора оригинальной папки (открывает диалог).
         private void BrowseOriginal_Click(object sender, RoutedEventArgs e)
         {
             using (var dialog = new FolderBrowserDialog())
             {
                 if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    OriginalPathTextBox.Text = dialog.SelectedPath;
+                    OriginalPathTextBox.Text = dialog.SelectedPath; // Устанавливаем выбранный путь в текстбокс.
                 }
             }
         }
 
-        // Выбор папки бэкапов через проводник.
+        // Кнопка для выбора папки бэкапов (аналогично).
         private void BrowseBackup_Click(object sender, RoutedEventArgs e)
         {
             using (var dialog = new FolderBrowserDialog())
@@ -50,22 +51,23 @@ namespace BackupManager
             }
         }
 
-        // Кнопка OK: сохраняем изменения.
+        // Кнопка OK: проверяем поля и сохраняем.
         private void OK_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(NameTextBox.Text) || string.IsNullOrEmpty(OriginalPathTextBox.Text) || string.IsNullOrEmpty(BackupPathTextBox.Text))
             {
-                System.Windows.MessageBox.Show("Заполните все поля!");
-                return;
+                // Вместо всплывающего окна — записываем в лог главного окна.
+                MainWindow.LogMessage("Ошибка: Заполните все поля в окне профиля!");
+                return; // Не закрываем окно.
             }
 
             Profile.Name = NameTextBox.Text;
             Profile.OriginalPath = OriginalPathTextBox.Text;
             Profile.BackupPath = BackupPathTextBox.Text;
-            DialogResult = true; // Закрываем с успехом.
+            DialogResult = true; // Закрываем окно с успехом.
         }
 
-        // Кнопка Отмена.
+        // Кнопка Отмена: просто закрываем.
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;

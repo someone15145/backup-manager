@@ -7,46 +7,60 @@ using System.Windows.Controls;
 using System.Timers;
 using System.IO.Compression;
 using System.Diagnostics;
-using System.Text.Json.Serialization; // Не нужно, но на всякий случай для JSON (уже встроено).
-using System.Text.Json; // Для опций сериализации, если нужно исключить вычисляемые свойства.
+using System.Text.Json; // Для сериализации в JSON.
 
-// Это код для главного окна. Здесь вся логика приложения.
+// Это главное окно приложения. Здесь вся основная логика: таблицы, кнопки, таймер, бэкапы и теперь лог.
 namespace BackupManager
 {
     public partial class MainWindow : Window
     {
         private List<Profile> profiles; // Список всех профилей.
-        private Profile selectedProfile; // Выбранный профиль.
-        private Timer autoBackupTimer; // Таймер для авто-бэкапов (каждые 30 мин).
-        private int selectedProfileIndex = -1; // Для сохранения индекса выделения после обновлений.
+        private Profile selectedProfile; // Текущий выбранный профиль.
+        private Timer autoBackupTimer; // Таймер для автоматических бэкапов (каждые 30 минут).
+        private int selectedProfileIndex = -1; // Индекс выбранного профиля (для сохранения после обновлений).
 
         public MainWindow()
         {
             InitializeComponent();
-            LoadData(); // Загружаем данные из JSON при запуске.
+            LoadData(); // Загружаем данные при запуске.
             SetupTimer(); // Настраиваем таймер.
+            LogMessage("Приложение запущено."); // Первое сообщение в лог.
+        }
+
+        // Статический метод для логирования из других окон (например, AddEditProfileWindow).
+        public static void LogMessage(string message)
+        {
+            // Находим главное окно (Application.Current.MainWindow) и вызываем его метод Log.
+            if (Application.Current.MainWindow is MainWindow mainWindow)
+            {
+                mainWindow.Log(message);
+            }
+        }
+
+        // Метод для добавления сообщения в лог (в нижней TextBox).
+        private void Log(string message)
+        {
+            // Формат: дата-время до секунд - сообщение.
+            string logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}\n";
+            LogTextBox.AppendText(logEntry); // Добавляем текст.
+            LogTextBox.ScrollToEnd(); // Прокручиваем вниз.
         }
 
         // Загрузка данных из JSON.
         private void LoadData()
         {
-            profiles = DataManager.LoadProfiles() ?? new List<Profile>(); // Если файла нет, создаём пустой список.
-            // Сортируем профили по имени (ascending).
-            profiles = profiles.OrderBy(p => p.Name).ToList();
-            ProfilesGrid.ItemsSource = profiles; // Привязываем к таблице.
+            profiles = DataManager.LoadProfiles() ?? new List<Profile>(); // Если нет файла, пустой список.
+            profiles = profiles.OrderBy(p => p.Name).ToList(); // Сортируем по имени (A-Z).
+            ProfilesGrid.ItemsSource = profiles; // Привязываем к таблице профилей.
         }
 
-        // Сохранение данных в JSON и обновление UI без сброса выделения.
+        // Сохранение данных в JSON и обновление UI.
         private void SaveData(bool refreshBackupsOnly = false)
         {
-            // Опции для JSON: исключаем вычисляемые свойства вроде IsArchivedString, чтобы не сериализовать их (опционально, но чище).
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            // Если нужно исключить IsArchivedString, добавь: options.IgnoreNullValues = true; но здесь оно не null.
-
-            DataManager.SaveProfiles(profiles); // Сохраняем в файл (метод уже использует JsonSerializer).
+            DataManager.SaveProfiles(profiles); // Сохраняем в файл.
             if (refreshBackupsOnly)
             {
-                // Обновляем только таблицу бэкапов, сохраняя выделение профиля.
+                // Обновляем только таблицу бэкапов.
                 if (selectedProfile != null)
                 {
                     var sortedBackups = selectedProfile.Backups.OrderByDescending(b => b.CreationDate).ToList();
@@ -55,9 +69,9 @@ namespace BackupManager
             }
             else
             {
-                // Полная перезагрузка (для профилей).
+                // Полная перезагрузка данных.
                 LoadData();
-                // Восстанавливаем выделение, если был индекс.
+                // Восстанавливаем выделение по индексу.
                 if (selectedProfileIndex >= 0 && selectedProfileIndex < profiles.Count)
                 {
                     ProfilesGrid.SelectedIndex = selectedProfileIndex;
@@ -68,27 +82,27 @@ namespace BackupManager
         // Настройка таймера для авто-бэкапов.
         private void SetupTimer()
         {
-            autoBackupTimer = new Timer(1800000); // 30 минут = 1 800 000 мс.
+            autoBackupTimer = new Timer(1800000); // 30 минут в миллисекундах.
             autoBackupTimer.Elapsed += AutoBackupTimer_Elapsed;
             autoBackupTimer.Start();
         }
 
-        // Событие таймера: проверяем изменения и создаём бэкап, если нужно.
+        // Событие таймера: проверяем изменения и создаём бэкап.
         private void AutoBackupTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (selectedProfile == null) return; // Если ничего не выбрано, пропускаем.
+            if (selectedProfile == null) return;
 
-            Dispatcher.Invoke(() => // Выполняем в UI-потоке.
+            Dispatcher.Invoke(() => // Выполняем в UI-потоке (таймер в другом потоке).
             {
                 if (HasFilesChanged(selectedProfile))
                 {
-                    CreateBackup(false); // Создаём бэкап без архивирования (для авто).
-                    MessageBox.Show("Авто-бэкап создан для профиля: " + selectedProfile.Name);
+                    CreateBackup(false); // Авто-бэкап без архивации.
+                    Log("Авто-бэкап создан для профиля: " + selectedProfile.Name); // В лог вместо MessageBox.
                 }
             });
         }
 
-        // Проверка, изменились ли файлы в оригинальной папке после последнего бэкапа.
+        // Проверка, изменились ли файлы в оригинальной папке.
         private bool HasFilesChanged(Profile profile)
         {
             if (!Directory.Exists(profile.OriginalPath)) return false;
@@ -98,7 +112,7 @@ namespace BackupManager
             foreach (var file in files)
             {
                 if (File.GetLastWriteTime(file) > lastBackupTime)
-                    return true; // Если хоть один файл изменился, возвращаем true.
+                    return true; // Если файл изменился, нужно бэкап.
             }
             return false;
         }
@@ -107,13 +121,12 @@ namespace BackupManager
         private void ProfilesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             selectedProfile = ProfilesGrid.SelectedItem as Profile;
-            selectedProfileIndex = ProfilesGrid.SelectedIndex; // Сохраняем индекс для будущего восстановления.
+            selectedProfileIndex = ProfilesGrid.SelectedIndex;
             if (selectedProfile != null)
             {
-                // Сортируем бэкапы по дате descending (новые сверху).
                 var sortedBackups = selectedProfile.Backups.OrderByDescending(b => b.CreationDate).ToList();
                 BackupsGrid.ItemsSource = sortedBackups;
-                CreateBackupButton.IsEnabled = true; // Активируем кнопку создания.
+                CreateBackupButton.IsEnabled = true;
             }
             else
             {
@@ -125,48 +138,51 @@ namespace BackupManager
         // Кнопка "Добавить профиль".
         private void AddProfile_Click(object sender, RoutedEventArgs e)
         {
-            var window = new AddEditProfileWindow(null); // Новое окно для добавления.
-            window.Owner = this; // Устанавливаем главное окно как владельца.
-            window.WindowStartupLocation = WindowStartupLocation.CenterOwner; // Центрируем по владельцу.
+            var window = new AddEditProfileWindow(null);
+            window.Owner = this;
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             if (window.ShowDialog() == true)
             {
                 profiles.Add(window.Profile);
-                SaveData(); // Полная перезагрузка, выделение сбросится (но это ок, новый профиль).
+                SaveData();
+                Log("Добавлен новый профиль: " + window.Profile.Name);
             }
         }
 
-        // Иконка "Изменить профиль" в таблице.
+        // Иконка "Изменить профиль".
         private void EditProfileIcon_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
             selectedProfile = button.DataContext as Profile;
             if (selectedProfile == null) return;
-            var window = new AddEditProfileWindow(selectedProfile); // Окно для изменения.
-            window.Owner = this; // Устанавливаем главное окно как владельца.
-            window.WindowStartupLocation = WindowStartupLocation.CenterOwner; // Центрируем по владельцу.
+            var window = new AddEditProfileWindow(selectedProfile);
+            window.Owner = this;
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             if (window.ShowDialog() == true)
             {
-                SaveData(); // Полная перезагрузка, но индекс сохранится.
+                SaveData();
+                Log("Изменён профиль: " + selectedProfile.Name);
             }
         }
 
-        // Иконка "Удалить профиль" в таблице.
+        // Иконка "Удалить профиль".
         private void DeleteProfileIcon_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
             var profileToDelete = button.DataContext as Profile;
             if (profileToDelete == null) return;
             profiles.Remove(profileToDelete);
-            SaveData(); // Полная перезагрузка, выделение перейдёт на следующий.
+            SaveData();
+            Log("Удалён профиль: " + profileToDelete.Name);
         }
 
         // Кнопка "Создать бэкап".
         private void CreateBackup_Click(object sender, RoutedEventArgs e)
         {
-            CreateBackup(ArchiveCheckbox.IsChecked == true); // С архивированием, если галочка.
+            CreateBackup(ArchiveCheckbox.IsChecked == true);
         }
 
-        // Логика создания бэкапа (ручного или авто).
+        // Логика создания бэкапа.
         private void CreateBackup(bool archive)
         {
             if (selectedProfile == null) return;
@@ -175,42 +191,41 @@ namespace BackupManager
             {
                 if (!Directory.Exists(selectedProfile.OriginalPath) || !Directory.Exists(selectedProfile.BackupPath))
                 {
-                    MessageBox.Show("Неверный путь к папкам!");
+                    Log("Ошибка: Неверный путь к папкам!"); // В лог вместо MessageBox.
                     return;
                 }
 
-                string backupName = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss"); // Формат имени с секундами.
+                string backupName = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
                 string backupFullPath = Path.Combine(selectedProfile.BackupPath, backupName);
 
-                // Копируем или архивируем.
                 if (archive)
                 {
-                    ZipFile.CreateFromDirectory(selectedProfile.OriginalPath, backupFullPath + ".zip"); // Архивируем в ZIP.
-                    backupFullPath += ".zip"; // Меняем путь на ZIP.
+                    ZipFile.CreateFromDirectory(selectedProfile.OriginalPath, backupFullPath + ".zip");
+                    backupFullPath += ".zip";
                 }
                 else
                 {
                     Directory.CreateDirectory(backupFullPath);
-                    CopyDirectory(selectedProfile.OriginalPath, backupFullPath); // Копируем папку.
+                    CopyDirectory(selectedProfile.OriginalPath, backupFullPath);
                 }
 
-                // Создаём объект бэкапа.
                 var backup = new Backup
                 {
                     Name = backupName,
                     CreationDate = DateTime.Now,
                     Path = backupFullPath,
-                    Size = CalculateSize(backupFullPath), // Рассчитываем размер.
-                    IsArchived = archive // Устанавливаем флаг архивирования.
+                    Size = CalculateSize(backupFullPath),
+                    IsArchived = archive
                 };
 
                 selectedProfile.Backups.Add(backup);
-                selectedProfile.LastBackupTime = DateTime.Now; // Обновляем время последнего бэкапа.
-                SaveData(true); // Обновляем только бэкапы, без сброса выделения профиля.
+                selectedProfile.LastBackupTime = DateTime.Now;
+                SaveData(true);
+                Log("Создан бэкап: " + backup.Name + " для профиля " + selectedProfile.Name);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Ошибка: " + ex.Message);
+                Log("Ошибка создания бэкапа: " + ex.Message);
             }
         }
 
@@ -228,51 +243,51 @@ namespace BackupManager
             }
         }
 
-        // Расчёт размера папки или ZIP (в МБ). Обратите внимание: в твоём JSON размер "95,00 MB" — это из-за локали (запятая вместо точки). Если нужно, можно форматировать с CultureInfo.
+        // Расчёт размера (в МБ, с запятой для русской локали).
         private string CalculateSize(string path)
         {
             long size = 0;
-            if (File.Exists(path)) // Если ZIP.
+            if (File.Exists(path))
             {
                 size = new FileInfo(path).Length;
             }
-            else if (Directory.Exists(path)) // Если папка.
+            else if (Directory.Exists(path))
             {
                 var files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
                 size = files.Sum(f => new FileInfo(f).Length);
             }
-            // Форматируем с запятой для русской локали (опционально).
             return (size / 1024 / 1024).ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("ru-RU")) + " MB";
         }
 
-        // Иконка "Удалить бэкап" в таблице.
+        // Иконка "Удалить бэкап".
         private void DeleteBackupIcon_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
             var selectedBackup = button.DataContext as Backup;
             if (selectedBackup == null) return;
 
-            // Удаляем файл/папку.
             if (File.Exists(selectedBackup.Path))
                 File.Delete(selectedBackup.Path);
             else if (Directory.Exists(selectedBackup.Path))
-                Directory.Delete(selectedBackup.Path, true);  // Исправление: Удаляем конкретный бэкап (selectedBackup.Path), а не всю папку профиля.
+                Directory.Delete(selectedBackup.Path, true);
 
             selectedProfile.Backups.Remove(selectedBackup);
-            SaveData(true); // Обновляем только бэкапы.
+            SaveData(true);
+            Log("Удалён бэкап: " + selectedBackup.Name);
         }
 
-        // Кнопка "Открыть папку" над таблицей бэкапов (открывает папку выбранного бэкапа).
+        // Кнопка "Открыть папку" (для выбранного бэкапа).
         private void OpenBackupFolderButton_Click(object sender, RoutedEventArgs e)
         {
             var selectedBackup = BackupsGrid.SelectedItem as Backup;
             if (selectedBackup != null)
             {
-                Process.Start("explorer.exe", Path.GetDirectoryName(selectedBackup.Path)); // Открываем родительскую папку.
+                Process.Start("explorer.exe", Path.GetDirectoryName(selectedBackup.Path));
+                Log("Открыта папка бэкапа: " + selectedBackup.Name);
             }
         }
 
-        // Иконка "Открыть оригинальную папку" в таблице профилей.
+        // Иконка "Открыть оригинальную папку".
         private void OpenOriginalFolder_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
@@ -280,90 +295,79 @@ namespace BackupManager
             if (profile != null && Directory.Exists(profile.OriginalPath))
             {
                 Process.Start("explorer.exe", profile.OriginalPath);
+                Log("Открыта оригинальная папка для профиля: " + profile.Name);
             }
         }
 
-        // Переименование имени бэкапа (при окончании редактирования ячейки). ИСПРАВЛЕНИЕ БАГА: Ручное обновление значения из TextBox в объект Backup.
+        // Окончание редактирования ячейки (для переименования бэкапа).
         private void BackupsGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
-            if (e.EditAction == DataGridEditAction.Commit) // Только если редактирование подтверждено (Enter или потеря фокуса).
+            if (e.EditAction == DataGridEditAction.Commit)
             {
-                // Получаем ячейку и элемент редактирования (TextBox для столбца "Имя").
                 var editedCell = e.EditingElement as TextBox;
                 if (editedCell != null)
                 {
-                    // Получаем объект Backup из строки DataGrid.
                     var backup = e.Row.Item as Backup;
                     if (backup != null)
                     {
-                        // Ручное присвоение нового имени из TextBox в объект (это обновит модель и вызовет INotifyPropertyChanged).
-                        backup.Name = editedCell.Text;
-                        // Теперь UI обновится автоматически, а SaveData сохранит в JSON.
+                        backup.Name = editedCell.Text; // Обновляем имя.
+                        Log("Переименован бэкап: " + backup.Name);
                     }
                 }
             }
-            SaveData(true); // Сохраняем изменения в JSON и обновляем таблицу.
+            SaveData(true);
         }
 
-        // Новый метод: иконка "Восстановить" в таблице бэкапов. Выполняет полную замену оригинальной папки содержимым бэкапа.
+        // Иконка "Восстановить бэкап".
         private void RestoreBackupIcon_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
             var backup = button.DataContext as Backup;
             if (backup == null || selectedProfile == null) return;
 
-            // Проверяем существование оригинальной папки.
             if (!Directory.Exists(selectedProfile.OriginalPath))
             {
-                MessageBox.Show("Оригинальная папка не существует!");
+                Log("Ошибка: Оригинальная папка не существует!");
                 return;
             }
 
-            // Подтверждение от пользователя, чтобы избежать случайной потери данных.
+            // Подтверждение оставляем в MessageBox, так как это интерактивный вопрос.
             var result = MessageBox.Show($"Восстановить из бэкапа '{backup.Name}'?\nЭто заменит все файлы в оригинальной папке '{selectedProfile.OriginalPath}'.", "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result != MessageBoxResult.Yes) return;
 
             try
             {
-                string tempExtractPath = null; // Временная папка для извлечения ZIP, если нужно.
-                string sourcePath = backup.Path; // Путь к бэкапу (папка или ZIP).
+                string tempExtractPath = null;
+                string sourcePath = backup.Path;
 
-                // Если бэкап — ZIP, извлекаем его во временную папку.
                 if (backup.IsArchived)
                 {
-                    tempExtractPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()); // Создаём уникальную временную папку.
-                    ZipFile.ExtractToDirectory(sourcePath, tempExtractPath); // Извлекаем ZIP.
-                    sourcePath = tempExtractPath; // Теперь копируем из временной папки.
+                    tempExtractPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                    ZipFile.ExtractToDirectory(sourcePath, tempExtractPath);
+                    sourcePath = tempExtractPath;
                 }
 
-                // Очищаем оригинальную папку (удаляем всё внутри, но не саму папку).
+                // Очищаем оригинальную папку.
                 var originalFiles = Directory.GetFiles(selectedProfile.OriginalPath);
                 var originalDirs = Directory.GetDirectories(selectedProfile.OriginalPath);
-                foreach (var file in originalFiles)
-                {
-                    File.Delete(file); // Удаляем файлы.
-                }
-                foreach (var dir in originalDirs)
-                {
-                    Directory.Delete(dir, true); // Рекурсивно удаляем подпапки.
-                }
+                foreach (var file in originalFiles) File.Delete(file);
+                foreach (var dir in originalDirs) Directory.Delete(dir, true);
 
-                // Копируем содержимое бэкапа в оригинальную папку.
+                // Копируем из бэкапа.
                 CopyDirectory(sourcePath, selectedProfile.OriginalPath);
 
-                // Очищаем временную папку, если использовали ZIP.
                 if (backup.IsArchived && Directory.Exists(tempExtractPath))
                 {
-                    Directory.Delete(tempExtractPath, true); // Удаляем временные файлы.
+                    Directory.Delete(tempExtractPath, true);
                 }
 
-                MessageBox.Show($"Восстановление завершено из бэкапа '{backup.Name}'!");
-                selectedProfile.LastBackupTime = DateTime.Now; // Обновляем время последнего "бэкапа" (для авто-проверки изменений).
-                SaveData(true); // Обновляем таблицу бэкапов (на всякий случай).
+                Log("Восстановление завершено из бэкапа: " + backup.Name);
+                selectedProfile.LastBackupTime = DateTime.Now;
+                SaveData(true);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Ошибка восстановления: " + ex.Message + "\nПроверьте права доступа к папкам.");
+                Log("Ошибка восстановления: " + ex.Message + "\nПроверьте права доступа.");
             }
         }
     }
