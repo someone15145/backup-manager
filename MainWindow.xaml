@@ -24,7 +24,8 @@
                 </StackPanel>
                 <DataGrid x:Name="ProfilesGrid" AutoGenerateColumns="False" SelectionChanged="ProfilesGrid_SelectionChanged" CanUserAddRows="False">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="*"/>
+                        <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                        <!-- Добавлено IsReadOnly="True" — запрещает редактирование имени профиля в таблице. -->
                         <DataGridTemplateColumn Header="Оригинал" Width="60">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -57,7 +58,8 @@
                     <CheckBox x:Name="ArchiveCheckbox" Content="Архивировать в ZIP" Margin="5" VerticalAlignment="Center"/>
                     <Button Content="Открыть папку" Click="OpenBackupFolderButton_Click" Margin="5"/>
                 </StackPanel>
-                <DataGrid x:Name="BackupsGrid" AutoGenerateColumns="False" CellEditEnding="BackupsGrid_CellEditEnding" CanUserAddRows="False">
+                <DataGrid x:Name="BackupsGrid" AutoGenerateColumns="False" CellEditEnding="BackupsGrid_CellEditEnding" CanUserAddRows="False" PreviewLostKeyboardFocus="BackupsGrid_PreviewLostKeyboardFocus">
+                    <!-- Добавлено PreviewLostKeyboardFocus для завершения редактирования при потере фокуса. -->
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="*" IsReadOnly="False"/>
                         <DataGridTextColumn Header="Дата создания" Binding="{Binding CreationDate}" Width="150" IsReadOnly="True"/>

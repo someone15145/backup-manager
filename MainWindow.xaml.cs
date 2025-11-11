@@ -4,10 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input; // Добавлено для KeyboardFocusChangedEventArgs в PreviewLostKeyboardFocus.
 using System.Timers;
 using System.IO.Compression;
 using System.Diagnostics;
 using System.Text.Json; // Для сериализации в JSON.
+using System.Globalization; // Для форматирования размера с запятой.
 
 // Это главное окно приложения. Здесь вся основная логика: таблицы, кнопки, таймер, бэкапы и теперь лог.
 namespace BackupManager
@@ -243,20 +245,41 @@ namespace BackupManager
             }
         }
 
-        // Расчёт размера (в МБ, с запятой для русской локали).
+        // Расчёт размера с динамической единицей (B, KB, MB, GB; с запятой для русской локали).
         private string CalculateSize(string path)
         {
-            long size = 0;
+            long sizeInBytes = 0;
             if (File.Exists(path))
             {
-                size = new FileInfo(path).Length;
+                sizeInBytes = new FileInfo(path).Length; // Для ZIP-файла.
             }
             else if (Directory.Exists(path))
             {
                 var files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
-                size = files.Sum(f => new FileInfo(f).Length);
+                sizeInBytes = files.Sum(f => new FileInfo(f).Length); // Сумма размеров всех файлов в папке.
             }
-            return (size / 1024 / 1024).ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("ru-RU")) + " MB";
+
+            // Определяем единицу измерения динамически.
+            CultureInfo ruCulture = CultureInfo.GetCultureInfo("ru-RU"); // Для запятой вместо точки.
+            if (sizeInBytes < 1024)
+            {
+                return sizeInBytes.ToString("0.00", ruCulture) + " B"; // Байты.
+            }
+            else if (sizeInBytes < 1024 * 1024)
+            {
+                double sizeInKB = (double)sizeInBytes / 1024;
+                return sizeInKB.ToString("0.00", ruCulture) + " KB"; // Килобайты.
+            }
+            else if (sizeInBytes < 1024 * 1024 * 1024)
+            {
+                double sizeInMB = (double)sizeInBytes / (1024 * 1024);
+                return sizeInMB.ToString("0.00", ruCulture) + " MB"; // Мегабайты.
+            }
+            else
+            {
+                double sizeInGB = (double)sizeInBytes / (1024 * 1024 * 1024);
+                return sizeInGB.ToString("0.00", ruCulture) + " GB"; // Гигабайты.
+            }
         }
 
         // Иконка "Удалить бэкап".
@@ -316,6 +339,16 @@ namespace BackupManager
                 }
             }
             SaveData(true);
+        }
+
+        // Новый обработчик: завершение редактирования при потере фокуса (даже вне таблицы).
+        private void BackupsGrid_PreviewLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            // Если фокус уходит за пределы DataGrid, принудительно завершаем редактирование.
+            if (e.NewFocus == null || !BackupsGrid.IsAncestorOf(e.NewFocus as DependencyObject))
+            {
+                BackupsGrid.CommitEdit(); // Завершаем редактирование ячейки.
+            }
         }
 
         // Иконка "Восстановить бэкап".
