@@ -1,5 +1,5 @@
 ﻿// MainWindow.xaml.cs
-using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -10,11 +10,18 @@ using System.Diagnostics;
 
 namespace BackupManager
 {
-    /// <summary>
-    /// Логика взаимодействия для MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// Путь к файлу с профилями (JSON).
+        /// </summary>
+        private const string ProfilesFile = "profiles.json";
+
+        /// <summary>
+        /// Путь к файлу логов (текстовый).
+        /// </summary>
+        private const string LogsFile = "logs.txt";
+
         /// <summary>
         /// Список профилей (observable для binding).
         /// </summary>
@@ -26,7 +33,7 @@ namespace BackupManager
         private Profile selectedProfile;
 
         /// <summary>
-        /// Список логов сессии (все логи после запуска, с опциональным ProfileId).
+        /// Список логов сессии (все логи после запуска, с опциональным ProfileName).
         /// </summary>
         private ObservableCollection<LogEntry> sessionLogs = new ObservableCollection<LogEntry>();
 
@@ -36,27 +43,29 @@ namespace BackupManager
         public MainWindow()
         {
             InitializeComponent();
-            // Инициализация базы данных (создание, если не существует).
-            using (var context = new AppDbContext())
-            {
-                context.Database.EnsureCreated();
-            }
-            // Загрузка профилей из БД.
+            // Загрузка профилей из JSON.
             LoadProfiles();
-            // Привязка списка профилей к ListBox.
-            ProfilesListBox.ItemsSource = profiles;
+            // Привязка списка профилей к DataGrid.
+            ProfilesDataGrid.ItemsSource = profiles;
+            // Загрузка логов из файла в TextBox (только для отображения, сессионные в памяти).
+            if (File.Exists(LogsFile))
+            {
+                GeneralLogsTextBox.Text = File.ReadAllText(LogsFile);
+                GeneralLogsTextBox.ScrollToEnd();
+            }
         }
 
         /// <summary>
-        /// Загрузка профилей из базы данных с использованием LINQ.
+        /// Загрузка профилей из JSON-файла.
         /// </summary>
         private void LoadProfiles()
         {
-            using (var context = new AppDbContext())
+            profiles.Clear();
+            if (File.Exists(ProfilesFile))
             {
-                profiles.Clear();
-                var loadedProfiles = context.Profiles.ToList();
-                foreach (var profile in loadedProfiles)
+                string json = File.ReadAllText(ProfilesFile);
+                var loaded = JsonConvert.DeserializeObject<ObservableCollection<Profile>>(json);
+                foreach (var profile in loaded)
                 {
                     profiles.Add(profile);
                 }
@@ -64,48 +73,64 @@ namespace BackupManager
         }
 
         /// <summary>
+        /// Сохранение профилей в JSON-файл.
+        /// </summary>
+        private void SaveProfiles()
+        {
+            string json = JsonConvert.SerializeObject(profiles);
+            File.WriteAllText(ProfilesFile, json);
+        }
+
+        /// <summary>
         /// Обработчик изменения выбора профиля.
         /// </summary>
-        private void ProfilesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ProfilesDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            selectedProfile = ProfilesListBox.SelectedItem as Profile;
+            selectedProfile = ProfilesDataGrid.SelectedItem as Profile;
             if (selectedProfile != null)
             {
                 LoadBackups();
-                LoadProfileLogs();
             }
             else
             {
                 BackupsDataGrid.ItemsSource = null;
-                LogsDataGrid.ItemsSource = null;
             }
         }
 
         /// <summary>
-        /// Загрузка бэкапов для выбранного профиля с использованием LINQ.
+        /// Загрузка бэкапов для выбранного профиля (сканирование папки).
         /// </summary>
         private void LoadBackups()
         {
-            using (var context = new AppDbContext())
+            var backups = new ObservableCollection<Backup>();
+            if (Directory.Exists(selectedProfile.BackupPath))
             {
-                var backups = context.Backups
-                    .Where(b => b.ProfileId == selectedProfile.Id)
-                    .OrderByDescending(b => b.Created)
-                    .ToList();
-                BackupsDataGrid.ItemsSource = new ObservableCollection<Backup>(backups);
-            }
-        }
+                foreach (var folder in Directory.GetDirectories(selectedProfile.BackupPath))
+                {
+                    string folderName = Path.GetFileName(folder);
+                    string metadataPath = Path.Combine(folder, "metadata.json");
+                    string displayName = folderName;
+                    DateTime created = DateTime.ParseExact(folderName, "yyyy-MM-dd_HHmmss", null);
 
-        /// <summary>
-        /// Загрузка логов для выбранного профиля (фильтрация сессионных логов).
-        /// </summary>
-        private void LoadProfileLogs()
-        {
-            var filteredLogs = sessionLogs
-                .Where(l => l.ProfileId == selectedProfile.Id)
-                .OrderByDescending(l => l.Time)
-                .ToList();
-            LogsDataGrid.ItemsSource = new ObservableCollection<LogEntry>(filteredLogs);
+                    // Загрузка метаданных, если существуют.
+                    if (File.Exists(metadataPath))
+                    {
+                        string json = File.ReadAllText(metadataPath);
+                        var metadata = JsonConvert.DeserializeObject<dynamic>(json);
+                        displayName = metadata.DisplayName ?? folderName;
+                    }
+
+                    backups.Add(new Backup
+                    {
+                        DisplayName = displayName,
+                        FolderName = folderName,
+                        Created = created
+                    });
+                }
+                // Сортировка по дате DESC.
+                backups = new ObservableCollection<Backup>(backups.OrderByDescending(b => b.Created));
+            }
+            BackupsDataGrid.ItemsSource = backups;
         }
 
         /// <summary>
@@ -114,15 +139,11 @@ namespace BackupManager
         private void AddProfile_Click(object sender, RoutedEventArgs e)
         {
             var editor = new ProfileEditorWindow();
-            if (editor.ShowDialog() == true)
+            if (editor.ShowDialog() == true && ValidateProfile(editor.Profile))
             {
-                using (var context = new AppDbContext())
-                {
-                    context.Profiles.Add(editor.Profile);
-                    context.SaveChanges();
-                }
-                LoadProfiles();
-                LogGeneral("Создан профиль");
+                profiles.Add(editor.Profile);
+                SaveProfiles();
+                LogGeneral("Создан профиль " + editor.Profile.Name);
             }
         }
 
@@ -134,17 +155,45 @@ namespace BackupManager
             var button = sender as Button;
             var profile = button.Tag as Profile;
             var editor = new ProfileEditorWindow(profile);
-            if (editor.ShowDialog() == true)
+            if (editor.ShowDialog() == true && ValidateProfile(editor.Profile))
             {
-                using (var context = new AppDbContext())
-                {
-                    context.Profiles.Update(editor.Profile);
-                    context.SaveChanges();
-                }
-                LoadProfiles();
-                LogGeneral("Профиль отредактирован");
-                LogProfile(profile.Id, "Профиль отредактирован");
+                // Обновление в коллекции (binding обновит UI).
+                profile.Name = editor.Profile.Name;
+                profile.SourcePath = editor.Profile.SourcePath;
+                profile.BackupPath = editor.Profile.BackupPath;
+                SaveProfiles();
+                LogGeneral("Профиль отредактирован " + profile.Name);
             }
+        }
+
+        /// <summary>
+        /// Валидация профиля: поля заполнены, пути существуют, не совпадают.
+        /// </summary>
+        /// <param name="profile">Профиль для проверки.</param>
+        /// <returns>True, если валиден.</returns>
+        private bool ValidateProfile(Profile profile)
+        {
+            if (string.IsNullOrWhiteSpace(profile.Name) || string.IsNullOrWhiteSpace(profile.SourcePath) || string.IsNullOrWhiteSpace(profile.BackupPath))
+            {
+                MessageBox.Show("Все поля должны быть заполнены.");
+                return false;
+            }
+            if (!Directory.Exists(profile.SourcePath))
+            {
+                MessageBox.Show("Исходная папка не существует.");
+                return false;
+            }
+            if (!Directory.Exists(profile.BackupPath))
+            {
+                MessageBox.Show("Папка бэкапов не существует.");
+                return false;
+            }
+            if (string.Equals(profile.SourcePath, profile.BackupPath, StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Пути к исходной папке и бэкапам не должны совпадать.");
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -167,27 +216,17 @@ namespace BackupManager
         {
             var button = sender as Button;
             var profile = button.Tag as Profile;
-
-            using (var context = new AppDbContext())
+            // Удаление связанных бэкапов (папок).
+            if (Directory.Exists(profile.BackupPath))
             {
-                // Удаление связанных бэкапов (папок и записей)
-                var backups = context.Backups.Where(b => b.ProfileId == profile.Id).ToList();
-                foreach (var backup in backups)
+                foreach (var dir in Directory.GetDirectories(profile.BackupPath))
                 {
-                    string folder = Path.Combine(profile.BackupPath, backup.FolderName);
-                    if (Directory.Exists(folder))
-                    {
-                        Directory.Delete(folder, true);
-                    }
+                    Directory.Delete(dir, true);
                 }
-                context.Backups.RemoveRange(backups);
-
-                // Удаление профиля
-                context.Profiles.Remove(profile);
-                context.SaveChanges();
             }
-            LoadProfiles();
-            LogGeneral("Профиль удален");
+            profiles.Remove(profile);
+            SaveProfiles();
+            LogGeneral("Профиль удален " + profile.Name);
         }
 
         /// <summary>
@@ -202,30 +241,19 @@ namespace BackupManager
             string backupDir = Path.Combine(selectedProfile.BackupPath, folderName);
             try
             {
-                // Копирование папки
+                // Копирование папки.
                 CopyDirectory(selectedProfile.SourcePath, backupDir, true);
-                // Сохранение в БД
-                var newBackup = new Backup
-                {
-                    ProfileId = selectedProfile.Id,
-                    DisplayName = displayName,
-                    FolderName = folderName,
-                    Created = now
-                };
-                using (var context = new AppDbContext())
-                {
-                    context.Backups.Add(newBackup);
-                    context.SaveChanges();
-                }
+                // Создание metadata.json.
+                string metadataPath = Path.Combine(backupDir, "metadata.json");
+                var metadata = new { DisplayName = displayName };
+                File.WriteAllText(metadataPath, JsonConvert.SerializeObject(metadata));
                 LoadBackups();
-                LogGeneral("Создан бэкап");
-                LogProfile(selectedProfile.Id, "Создан бэкап " + displayName);
+                LogGeneral("Создан бэкап для " + selectedProfile.Name);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Ошибка при создании бэкапа: " + ex.Message);
                 LogGeneral("Ошибка: " + ex.Message);
-                LogProfile(selectedProfile.Id, "Ошибка при создании бэкапа: " + ex.Message);
             }
         }
 
@@ -249,7 +277,7 @@ namespace BackupManager
         }
 
         /// <summary>
-        /// Обработчик окончания редактирования ячейки (для переименования бэкапа).
+        /// Обработчик окончания редактирования ячейки (для переименования DisplayName).
         /// </summary>
         private void BackupsDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
@@ -259,23 +287,20 @@ namespace BackupManager
                 var textBox = e.EditingElement as TextBox;
                 string newName = textBox.Text;
                 string oldName = backup.DisplayName;
-                if (newName != oldName)
+                if (newName != oldName && !string.IsNullOrWhiteSpace(newName))
                 {
-                    using (var context = new AppDbContext())
-                    {
-                        var dbBackup = context.Backups.Find(backup.Id);
-                        dbBackup.DisplayName = newName;
-                        context.SaveChanges();
-                    }
-                    LogGeneral($"Бэкап '{oldName}' переименован в '{newName}'");
-                    LogProfile(selectedProfile.Id, $"Бэкап '{oldName}' переименован в '{newName}'");
-                    backup.DisplayName = newName; // Обновление в локальной модели
+                    string backupDir = Path.Combine(selectedProfile.BackupPath, backup.FolderName);
+                    string metadataPath = Path.Combine(backupDir, "metadata.json");
+                    var metadata = new { DisplayName = newName };
+                    File.WriteAllText(metadataPath, JsonConvert.SerializeObject(metadata));
+                    backup.DisplayName = newName;
+                    LogGeneral($"Бэкап '{oldName}' переименован в '{newName}' для " + selectedProfile.Name);
                 }
             }
         }
 
         /// <summary>
-        /// Обработчик кнопки восстановления бэкапа.
+        /// Обработчик кнопки восстановления бэкапа (чистое восстановление).
         /// </summary>
         private void RestoreBackup_Click(object sender, RoutedEventArgs e)
         {
@@ -284,15 +309,23 @@ namespace BackupManager
             string backupDir = Path.Combine(selectedProfile.BackupPath, backup.FolderName);
             try
             {
+                // Чистка исходной папки перед восстановлением.
+                foreach (var file in Directory.GetFiles(selectedProfile.SourcePath, "*.*", SearchOption.AllDirectories))
+                {
+                    File.Delete(file);
+                }
+                foreach (var dir in Directory.GetDirectories(selectedProfile.SourcePath, "*", SearchOption.AllDirectories).OrderByDescending(d => d.Length))
+                {
+                    Directory.Delete(dir);
+                }
+                // Копирование из бэкапа.
                 CopyDirectory(backupDir, selectedProfile.SourcePath, true);
-                LogGeneral("Восстановлен бэкап " + backup.DisplayName);
-                LogProfile(selectedProfile.Id, "Восстановлен бэкап " + backup.DisplayName);
+                LogGeneral("Восстановлен бэкап " + backup.DisplayName + " для " + selectedProfile.Name);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Ошибка восстановления: " + ex.Message);
                 LogGeneral("Ошибка: " + ex.Message);
-                LogProfile(selectedProfile.Id, "Ошибка восстановления: " + ex.Message);
             }
         }
 
@@ -322,49 +355,25 @@ namespace BackupManager
             {
                 Directory.Delete(backupDir, true);
             }
-            using (var context = new AppDbContext())
-            {
-                var dbBackup = context.Backups.Find(backup.Id);
-                context.Backups.Remove(dbBackup);
-                context.SaveChanges();
-            }
             LoadBackups();
-            LogGeneral("Удален бэкап " + backup.DisplayName);
-            LogProfile(selectedProfile.Id, "Удален бэкап " + backup.DisplayName);
+            LogGeneral("Удален бэкап " + backup.DisplayName + " для " + selectedProfile.Name);
         }
 
         /// <summary>
-        /// Логирование общего события (не привязанного к профилю).
-        /// Добавляет в сессионные логи и в нижнюю область.
+        /// Логирование события (все в одном методе, так как без вкладки логов).
+        /// Добавляет в сессионные логи, в TextBox и append в файл.
         /// </summary>
         /// <param name="message">Сообщение.</param>
         private void LogGeneral(string message)
         {
             var now = DateTime.Now;
-            var log = new LogEntry { Time = now, Message = message, ProfileId = null };
+            var log = new LogEntry { Time = now, Message = message, ProfileName = selectedProfile?.Name };
             sessionLogs.Add(log);
-            GeneralLogsTextBox.AppendText(now.ToString("yyyy-MM-dd HH:mm:ss") + " " + message + "\n");
+            string logLine = now.ToString("yyyy-MM-dd HH:mm:ss") + " " + message + "\n";
+            GeneralLogsTextBox.AppendText(logLine);
             GeneralLogsTextBox.ScrollToEnd();
-        }
-
-        /// <summary>
-        /// Логирование события, привязанного к профилю.
-        /// Добавляет в сессионные логи и в нижнюю область (как общее).
-        /// </summary>
-        /// <param name="profileId">ID профиля.</param>
-        /// <param name="message">Сообщение.</param>
-        private void LogProfile(int profileId, string message)
-        {
-            var now = DateTime.Now;
-            var log = new LogEntry { Time = now, Message = message, ProfileId = profileId };
-            sessionLogs.Add(log);
-            GeneralLogsTextBox.AppendText(now.ToString("yyyy-MM-dd HH:mm:ss") + " " + message + "\n");
-            GeneralLogsTextBox.ScrollToEnd();
-            // Если профиль выбран, обновляем таблицу логов
-            if (selectedProfile != null && selectedProfile.Id == profileId)
-            {
-                LoadProfileLogs();
-            }
+            // Append в файл.
+            File.AppendAllText(LogsFile, logLine);
         }
     }
 }

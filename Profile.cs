@@ -1,19 +1,11 @@
 ﻿// Profile.cs
-using System.ComponentModel.DataAnnotations;
-
 namespace BackupManager
 {
     /// <summary>
-    /// Класс, представляющий профиль бэкапа.
+    /// Класс, представляющий профиль бэкапа (хранится в JSON).
     /// </summary>
     public class Profile
     {
-        /// <summary>
-        /// Уникальный идентификатор профиля.
-        /// </summary>
-        [Key]
-        public int Id { get; set; }
-
         /// <summary>
         /// Название профиля.
         /// </summary>

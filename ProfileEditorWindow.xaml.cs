@@ -1,13 +1,9 @@
 ﻿// ProfileEditorWindow.xaml.cs
-using System;
-using System.Windows;
 using Ookii.Dialogs.Wpf;
+using System.Windows;
 
 namespace BackupManager
 {
-    /// <summary>
-    /// Логика взаимодействия для ProfileEditorWindow.xaml
-    /// </summary>
     public partial class ProfileEditorWindow : Window
     {
         /// <summary>
@@ -60,7 +56,7 @@ namespace BackupManager
         }
 
         /// <summary>
-        /// Обработчик кнопки сохранения.
+        /// Обработчик кнопки сохранения (валидация в MainWindow).
         /// </summary>
         private void Save_Click(object sender, RoutedEventArgs e)
         {

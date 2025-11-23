@@ -21,6 +21,6 @@ namespace BackupManager
         /// <summary>
         /// Идентификатор профиля, к которому относится лог (null для общих).
         /// </summary>
-        public int? ProfileId { get; set; }
+        public string ProfileName { get; set; } // Изменено на имя, так как без ID
     }
 }
