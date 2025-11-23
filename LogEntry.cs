@@ -1,0 +1,27 @@
+﻿// LogEntry.cs
+using System;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace BackupManager
+{
+    /// <summary>
+    /// Класс, представляющий запись лога (используется в памяти для сессии).
+    /// </summary>
+    public class LogEntry
+    {
+        /// <summary>
+        /// Дата и время записи лога.
+        /// </summary>
+        public DateTime Time { get; set; }
+
+        /// <summary>
+        /// Сообщение лога.
+        /// </summary>
+        public string Message { get; set; }
+
+        /// <summary>
+        /// Идентификатор профиля, к которому относится лог (null для общих).
+        /// </summary>
+        public int? ProfileId { get; set; }
+    }
+}
