@@ -1,29 +1,28 @@
-<!-- ProfileEditorWindow.xaml -->
 <Window x:Class="BackupManager.ProfileEditorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Ðåäàêòèðîâàíèå ïðîôèëÿ" Height="200" Width="400">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,5">
-            <TextBlock Text="Íàçâàíèå:" Width="100" />
-            <TextBox x:Name="NameTextBox" Width="250" />
-        </StackPanel>
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,5">
-            <TextBlock Text="Èñõîäíàÿ ïàïêà:" Width="100" />
-            <TextBox x:Name="SourcePathTextBox" Width="200" />
-            <Button Content="Îáçîð" Click="BrowseSource_Click" Width="50" />
-        </StackPanel>
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5">
-            <TextBlock Text="Ïàïêà áýêàïîâ:" Width="100" />
-            <TextBox x:Name="BackupPathTextBox" Width="200" />
-            <Button Content="Îáçîð" Click="BrowseBackup_Click" Width="50" />
-        </StackPanel>
-        <Button Grid.Row="3" Content="Ñîõðàíèòü" Click="Save_Click" HorizontalAlignment="Right" Margin="0,10" />
-    </Grid>
+        Title="Ð ÐµÐ´Ð°ÐºÑ‚Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ Ð¿Ñ€Ð¾Ñ„Ð¸Ð»Ñ" Height="200" Width="400">
+	<Grid Margin="10">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
+		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,5">
+			<TextBlock Text="ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ:" Width="100" />
+			<TextBox x:Name="NameTextBox" Width="250" />
+		</StackPanel>
+		<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,5">
+			<TextBlock Text="Ð˜ÑÑ…Ð¾Ð´Ð½Ð°Ñ Ð¿Ð°Ð¿ÐºÐ°:" Width="100" />
+			<TextBox x:Name="SourcePathTextBox" Width="200" />
+			<Button Content="ÐžÐ±Ð·Ð¾Ñ€" Click="BrowseSource_Click" Width="50" />
+		</StackPanel>
+		<StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5">
+			<TextBlock Text="ÐŸÐ°Ð¿ÐºÐ° Ð±ÑÐºÐ°Ð¿Ð¾Ð²:" Width="100" />
+			<TextBox x:Name="BackupPathTextBox" Width="200" />
+			<Button Content="ÐžÐ±Ð·Ð¾Ñ€" Click="BrowseBackup_Click" Width="50" />
+		</StackPanel>
+		<Button Grid.Row="3" Content="Ð¡Ð¾Ñ…Ñ€Ð°Ð½Ð¸Ñ‚ÑŒ" Click="Save_Click" HorizontalAlignment="Right" Margin="0,10" />
+	</Grid>
 </Window>

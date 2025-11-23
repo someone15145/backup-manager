@@ -1,5 +1,4 @@
-﻿// Backup.cs
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace BackupManager

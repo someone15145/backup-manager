@@ -1,5 +1,4 @@
-﻿// ProfileEditorWindow.xaml.cs
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Forms; // Для FolderBrowserDialog
 
@@ -42,7 +41,7 @@ namespace BackupManager
         {
             using (var dialog = new FolderBrowserDialog())
             {
-                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     SourcePathTextBox.Text = dialog.SelectedPath;
                 }
@@ -56,7 +55,7 @@ namespace BackupManager
         {
             using (var dialog = new FolderBrowserDialog())
             {
-                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     BackupPathTextBox.Text = dialog.SelectedPath;
                 }

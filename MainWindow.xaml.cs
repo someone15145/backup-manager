@@ -1,5 +1,4 @@
-﻿// MainWindow.xaml.cs
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -131,7 +130,7 @@ namespace BackupManager
         /// </summary>
         private void EditProfile_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as System.Windows.Controls.Button;
+            var button = sender as Button;
             var profile = button.Tag as Profile;
             var editor = new ProfileEditorWindow(profile);
             if (editor.ShowDialog() == true)
@@ -152,7 +151,7 @@ namespace BackupManager
         /// </summary>
         private void OpenBackupFolder_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as System.Windows.Controls.Button;
+            var button = sender as Button;
             var profile = button.Tag as Profile;
             if (Directory.Exists(profile.BackupPath))
             {
@@ -165,7 +164,7 @@ namespace BackupManager
         /// </summary>
         private void DeleteProfile_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as System.Windows.Controls.Button;
+            var button = sender as Button;
             var profile = button.Tag as Profile;
 
             using (var context = new AppDbContext())
@@ -223,7 +222,7 @@ namespace BackupManager
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show("Ошибка при создании бэкапа: " + ex.Message);
+                MessageBox.Show("Ошибка при создании бэкапа: " + ex.Message);
                 LogGeneral("Ошибка: " + ex.Message);
                 LogProfile(selectedProfile.Id, "Ошибка при создании бэкапа: " + ex.Message);
             }
@@ -256,7 +255,7 @@ namespace BackupManager
             if (e.EditAction == DataGridEditAction.Commit)
             {
                 var backup = e.Row.Item as Backup;
-                var textBox = e.EditingElement as System.Windows.Controls.TextBox;
+                var textBox = e.EditingElement as TextBox;
                 string newName = textBox.Text;
                 string oldName = backup.DisplayName;
                 if (newName != oldName)
@@ -279,7 +278,7 @@ namespace BackupManager
         /// </summary>
         private void RestoreBackup_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as System.Windows.Controls.Button;
+            var button = sender as Button;
             var backup = button.Tag as Backup;
             string backupDir = Path.Combine(selectedProfile.BackupPath, backup.FolderName);
             try
@@ -290,7 +289,7 @@ namespace BackupManager
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show("Ошибка восстановления: " + ex.Message);
+                MessageBox.Show("Ошибка восстановления: " + ex.Message);
                 LogGeneral("Ошибка: " + ex.Message);
                 LogProfile(selectedProfile.Id, "Ошибка восстановления: " + ex.Message);
             }
@@ -301,7 +300,7 @@ namespace BackupManager
         /// </summary>
         private void OpenBackupInExplorer_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as System.Windows.Controls.Button;
+            var button = sender as Button;
             var backup = button.Tag as Backup;
             string backupDir = Path.Combine(selectedProfile.BackupPath, backup.FolderName);
             if (Directory.Exists(backupDir))
@@ -315,7 +314,7 @@ namespace BackupManager
         /// </summary>
         private void DeleteBackup_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as System.Windows.Controls.Button;
+            var button = sender as Button;
             var backup = button.Tag as Backup;
             string backupDir = Path.Combine(selectedProfile.BackupPath, backup.FolderName);
             if (Directory.Exists(backupDir))

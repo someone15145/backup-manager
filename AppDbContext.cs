@@ -1,7 +1,4 @@
-﻿// AppDbContext.cs
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace BackupManager
 {
