@@ -1,4 +1,5 @@
-﻿using System;
+﻿// LogEntry.cs
+using System;
 
 namespace BackupManager
 {

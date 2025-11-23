@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿// App.xaml.cs
+using System.Windows;
 
 namespace BackupManager
 {

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿// AppDbContext.cs
+using Microsoft.EntityFrameworkCore;
 
 namespace BackupManager
 {

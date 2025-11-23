@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿// Profile.cs
+using System.ComponentModel.DataAnnotations;
 
 namespace BackupManager
 {

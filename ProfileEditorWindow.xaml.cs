@@ -1,6 +1,7 @@
-﻿using System;
+﻿// ProfileEditorWindow.xaml.cs
+using System;
 using System.Windows;
-using System.Windows.Forms; // Для FolderBrowserDialog
+using Ookii.Dialogs.Wpf;
 
 namespace BackupManager
 {
@@ -39,12 +40,10 @@ namespace BackupManager
         /// </summary>
         private void BrowseSource_Click(object sender, RoutedEventArgs e)
         {
-            using (var dialog = new FolderBrowserDialog())
+            var dialog = new VistaFolderBrowserDialog();
+            if (dialog.ShowDialog(this) == true)
             {
-                if (dialog.ShowDialog() == DialogResult.OK)
-                {
-                    SourcePathTextBox.Text = dialog.SelectedPath;
-                }
+                SourcePathTextBox.Text = dialog.SelectedPath;
             }
         }
 
@@ -53,12 +52,10 @@ namespace BackupManager
         /// </summary>
         private void BrowseBackup_Click(object sender, RoutedEventArgs e)
         {
-            using (var dialog = new FolderBrowserDialog())
+            var dialog = new VistaFolderBrowserDialog();
+            if (dialog.ShowDialog(this) == true)
             {
-                if (dialog.ShowDialog() == DialogResult.OK)
-                {
-                    BackupPathTextBox.Text = dialog.SelectedPath;
-                }
+                BackupPathTextBox.Text = dialog.SelectedPath;
             }
         }
 
