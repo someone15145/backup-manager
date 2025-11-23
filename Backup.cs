@@ -4,22 +4,23 @@ using System;
 namespace BackupManager
 {
     /// <summary>
-    /// Класс, представляющий бэкап (метаданные из JSON или папки).
+    /// Класс, представляющий бэкап.
+    /// DisplayName и FolderName всегда одинаковы (имя папки).
     /// </summary>
     public class Backup
     {
         /// <summary>
-        /// Отображаемое название бэкапа (можно редактировать в metadata.json).
+        /// Отображаемое имя бэкапа (то же, что имя папки).
         /// </summary>
         public string DisplayName { get; set; }
 
         /// <summary>
-        /// Имя папки бэкапа (не меняется, используется для пути).
+        /// Имя папки бэкапа.
         /// </summary>
         public string FolderName { get; set; }
 
         /// <summary>
-        /// Дата и время создания бэкапа (парсится из FolderName или JSON).
+        /// Дата создания (берётся из свойств папки).
         /// </summary>
         public DateTime Created { get; set; }
     }

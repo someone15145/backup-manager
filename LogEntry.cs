@@ -4,7 +4,7 @@ using System;
 namespace BackupManager
 {
     /// <summary>
-    /// Класс, представляющий запись лога (используется в памяти для сессии).
+    /// Класс, представляющий запись лога.
     /// </summary>
     public class LogEntry
     {
@@ -21,6 +21,6 @@ namespace BackupManager
         /// <summary>
         /// Идентификатор профиля, к которому относится лог (null для общих).
         /// </summary>
-        public string ProfileName { get; set; } // Изменено на имя, так как без ID
+        public string ProfileName { get; set; }
     }
 }

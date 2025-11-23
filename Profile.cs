@@ -1,24 +1,35 @@
 ﻿// Profile.cs
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
 namespace BackupManager
 {
-    /// <summary>
-    /// Класс, представляющий профиль бэкапа (хранится в JSON).
-    /// </summary>
-    public class Profile
+    public class Profile : INotifyPropertyChanged
     {
-        /// <summary>
-        /// Название профиля.
-        /// </summary>
-        public string Name { get; set; }
+        private string _name;
+        private string _sourcePath;
+        private string _backupPath;
 
-        /// <summary>
-        /// Путь к исходной папке для бэкапа.
-        /// </summary>
-        public string SourcePath { get; set; }
+        public string Name
+        {
+            get => _name;
+            set { _name = value; OnPropertyChanged(); }
+        }
 
-        /// <summary>
-        /// Путь к папке, где хранятся бэкапы.
-        /// </summary>
-        public string BackupPath { get; set; }
+        public string SourcePath
+        {
+            get => _sourcePath;
+            set { _sourcePath = value; OnPropertyChanged(); }
+        }
+
+        public string BackupPath
+        {
+            get => _backupPath;
+            set { _backupPath = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string prop = "") =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
     }
 }
