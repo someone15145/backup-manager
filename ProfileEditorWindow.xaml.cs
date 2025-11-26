@@ -12,9 +12,6 @@ namespace BackupManager
         public ProfileEditorWindow(Profile profile = null)
         {
             InitializeComponent();
-            Owner = Application.Current.MainWindow;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
-
             Profile = profile ?? new Profile();
             NameTextBox.Text = Profile.Name;
             SourcePathTextBox.Text = Profile.SourcePath;
@@ -63,7 +60,7 @@ namespace BackupManager
                 ErrorTextBlock.Text = "Папка бэкапов не существует.";
                 return;
             }
-            if (Path.GetFullPath(source).Equals(Path.GetFullPath(backup), System.StringComparison.OrdinalIgnoreCase))
+            if (Path.GetFullPath(source).Equals(Path.GetFullPath(backup), StringComparison.OrdinalIgnoreCase))
             {
                 ErrorTextBlock.Text = "Пути не должны совпадать.";
                 return;

@@ -12,7 +12,8 @@
             <RowDefinition Height="100" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="200" />
+            <ColumnDefinition Width="200" x:Name="ProfilesColumn" />
+            <ColumnDefinition Width="5" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
@@ -23,8 +24,7 @@
                 <Button Content="+" Width="30" Click="AddProfile_Click" HorizontalAlignment="Right" />
             </DockPanel>
             <DataGrid x:Name="ProfilesDataGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" 
-                      SelectionChanged="ProfilesDataGrid_SelectionChanged" VerticalScrollBarVisibility="Auto"
-                      Height="Auto" Margin="0,5,0,0">
+                      SelectionChanged="ProfilesDataGrid_SelectionChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*" />
                     <DataGridTemplateColumn Width="90">
@@ -42,16 +42,21 @@
             </DataGrid>
         </StackPanel>
 
+        <!-- GridSplitter для изменения ширины -->
+        <GridSplitter Grid.Row="0" Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Gray" />
+
         <!-- Бэкапы -->
-        <StackPanel Grid.Row="0" Grid.Column="1" Margin="10">
-            <Button Content="+" Width="30" HorizontalAlignment="Right" Click="CreateBackup_Click" ToolTip="Создать бэкап" />
+        <StackPanel Grid.Row="0" Grid.Column="2" Margin="10">
+            <DockPanel>
+                <Button Content="+" Width="30" Click="CreateBackup_Click" HorizontalAlignment="Left" ToolTip="Создать бэкап" />
+                <Button Content="↻" Width="30" Click="RefreshBackups_Click" HorizontalAlignment="Left" ToolTip="Обновить" Margin="5,0,0,0" />
+            </DockPanel>
             <DataGrid x:Name="BackupsDataGrid" AutoGenerateColumns="False" CanUserAddRows="False" 
-                      CellEditEnding="BackupsDataGrid_CellEditEnding" VerticalScrollBarVisibility="Auto"
-                      Height="Auto" Margin="0,5,0,0">
+                      CellEditEnding="BackupsDataGrid_CellEditEnding" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" />
+                    <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="*" />
                     <DataGridTextColumn Header="Дата и время" Binding="{Binding Created, StringFormat=yyyy-MM-dd HH:mm:ss}" IsReadOnly="True" />
-                    <DataGridTemplateColumn Header="Действия">
+                    <DataGridTemplateColumn Header="Действия" Width="90">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
@@ -67,7 +72,7 @@
         </StackPanel>
 
         <!-- Логи -->
-        <TextBox x:Name="GeneralLogsTextBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="10" 
+        <TextBox x:Name="GeneralLogsTextBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="10" 
                  IsReadOnly="True" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" />
     </Grid>
 </Window>

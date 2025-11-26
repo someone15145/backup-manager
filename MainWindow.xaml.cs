@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -70,9 +69,14 @@ namespace BackupManager
 
         private void AddProfile_Click(object sender, RoutedEventArgs e)
         {
-            var editor = new ProfileEditorWindow { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+            var editor = new ProfileEditorWindow();
             if (editor.ShowDialog() == true)
             {
+                if (profiles.Any(p => p.Name.Equals(editor.Profile.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    MessageBox.Show("Имя профиля должно быть уникальным.");
+                    return;
+                }
                 profiles.Add(editor.Profile);
                 SaveProfiles();
                 LogGeneral($"Создан профиль {editor.Profile.Name}");
@@ -85,10 +89,17 @@ namespace BackupManager
             var profile = button?.Tag as Profile;
             if (profile == null) return;
 
-            var editor = new ProfileEditorWindow(profile) { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+            var editor = new ProfileEditorWindow(profile);
             if (editor.ShowDialog() == true)
             {
-                profile.Name = editor.Profile.Name;
+                string newName = editor.Profile.Name;
+                if (!newName.Equals(profile.Name, StringComparison.OrdinalIgnoreCase) &&
+                    profiles.Any(p => p.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    MessageBox.Show("Имя профиля должно быть уникальным.");
+                    return;
+                }
+                profile.Name = newName;
                 profile.SourcePath = editor.Profile.SourcePath;
                 profile.BackupPath = editor.Profile.BackupPath;
                 SaveProfiles();
@@ -163,7 +174,6 @@ namespace BackupManager
             string newFolderName = newName;
             string newDir = Path.Combine(selectedProfile.BackupPath, newFolderName);
 
-            // Разрешение конфликтов имён
             int i = 1;
             while (Directory.Exists(newDir))
             {
@@ -232,6 +242,12 @@ namespace BackupManager
 
             LoadBackups();
             LogGeneral($"Удалён бэкап {backup.DisplayName} для {selectedProfile.Name}");
+        }
+
+        private void RefreshBackups_Click(object sender, RoutedEventArgs e)
+        {
+            LoadBackups();
+            LogGeneral("Данные о бэкапах обновлены для " + selectedProfile?.Name);
         }
 
         private void LogGeneral(string message)
